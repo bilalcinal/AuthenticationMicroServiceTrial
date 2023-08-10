@@ -1,43 +1,43 @@
 {
-  "Routes": [
-    {
-      "DownstreamPathTemplate": "/api/user/GetUserById",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
+    "Routes": [
         {
-          "Host": "localhost",
-          "Port": 7153
-        }
-      ],
-      "UpstreamPathTemplate": "/user/GetUserById",
-      "UpstreamHttpMethod": [ "Get" ]
-    },
-    {
-      "DownstreamPathTemplate": "/api/user/CreateUser",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
+            "DownstreamPathTemplate": "/api/user/GetUserById",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7153
+                }
+            ],
+            "UpstreamPathTemplate": "/user/GetUserById",
+            "UpstreamHttpMethod": [ "Get" ]
+        },
         {
-          "Host": "localhost",
-          "Port": 7153
-        }
-      ],
-      "UpstreamPathTemplate": "/Authentication/CreateUser",
-      "UpstreamHttpMethod": [ "Post" ]
-    },
-    {
-      "DownstreamPathTemplate": "/api/user/DeleteUser",
-      "DownstreamScheme": "https",
-      "DownstreamHostAndPorts": [
+            "DownstreamPathTemplate": "/api/User/CreateUser",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7153
+                }
+            ],
+            "UpstreamPathTemplate": "/Authentication/CreateUser",
+            "UpstreamHttpMethod": [ "Post" ]
+        },
         {
-          "Host": "localhost",
-          "Port": 7153
+            "DownstreamPathTemplate": "/api/user/DeleteUser",
+            "DownstreamScheme": "https",
+            "DownstreamHostAndPorts": [
+                {
+                    "Host": "localhost",
+                    "Port": 7153
+                }
+            ],
+            "UpstreamPathTemplate": "/user/DeleteUser",
+            "UpstreamHttpMethod": [ "Post" ]
         }
-      ],
-      "UpstreamPathTemplate": "/user/DeleteUser",
-      "UpstreamHttpMethod": [ "Post" ]
+    ],
+    "GlobalConfiguration": {
+        "BaseUrl": "https://localhost:7244"
     }
-  ],
-  "GlobalConfiguration": {
-    "BaseUrl": "https://localhost:7244"
-  }
 }

@@ -13,7 +13,7 @@ namespace Authentication.API.Data
         
        }
 
-       public DbSet<UserRegister> UserRegister { get; set; }
+       public DbSet<UserPassword> UserPassword { get; set; }
         
     }
 }

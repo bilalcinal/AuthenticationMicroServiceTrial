@@ -37,6 +37,7 @@ namespace Account.API.Controllers
             var User = new User{
               UserName = userModel.UserName,
               Email = userModel.Email,
+              Phone = userModel.Phone,
               CreatedDate = DateTime.UtcNow
             };
            
