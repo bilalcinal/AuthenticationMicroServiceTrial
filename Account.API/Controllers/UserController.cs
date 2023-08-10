@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using Account.API.Data;
+using Account.API.Model;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 
@@ -18,7 +19,7 @@ namespace Account.API.Controllers
             _accountDbContext = dbContext;
         }
 
-        [HttpGet("{id}")]
+        [HttpGet("GetUserById")]
         public async Task<IActionResult> GetUserById(int id)
         {
             var user = await _accountDbContext.User.FindAsync(id);
@@ -31,44 +32,21 @@ namespace Account.API.Controllers
         }
 
         [HttpPost("CreateUser")]
-        public async Task<IActionResult> CreateUser(User user)
+        public async Task<IActionResult> CreateUser(UserModel userModel )
         {
-            _accountDbContext.User.Add(user);
-            await _accountDbContext.SaveChangesAsync();
+            var User = new User{
+              UserName = userModel.UserName,
+              Email = userModel.Email,
+              CreatedDate = DateTime.UtcNow
+            };
+           
+            _accountDbContext.User.Add(User);
+             await _accountDbContext.SaveChangesAsync();
 
             return Ok();
         }
 
-        [HttpPost("{id}")]
-        public async Task<IActionResult> UpdateUser(int id, User updatedUser)
-        {
-            if (id != updatedUser.Id)
-            {
-                return BadRequest();
-            }
-
-            _accountDbContext.Entry(updatedUser).State = EntityState.Modified;
-
-            try
-            {
-                await _accountDbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!UserExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-
-        [HttpDelete("{id}")]
+        [HttpPost("DeleteUser")]
         public async Task<IActionResult> DeleteUser(int id)
         {
             var user = await _accountDbContext.User.FindAsync(id);
@@ -81,11 +59,6 @@ namespace Account.API.Controllers
             await _accountDbContext.SaveChangesAsync();
 
             return NoContent();
-        }
-
-        private bool UserExists(int id)
-        {
-            return _accountDbContext.User.Any(u => u.Id == id);
         }
     }
 }
