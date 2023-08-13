@@ -9,7 +9,7 @@ namespace Account.API.Data
         
        }
 
-       public DbSet<User> User {get; set;}
+       public DbSet<Account> Account {get; set;}
 
     }
 }

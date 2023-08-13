@@ -10,7 +10,10 @@ internal class Program
         // Add services to the container.
 
         builder.Services.AddControllers();
-
+        builder.Services.AddCors(p => p.AddPolicy("CorsPolicy", builder =>
+        {
+            builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
+        }));
         // AccountDbContext'i burada ekleyin
         builder.Services.AddDbContext<AccountDbContext>(options =>
         {
@@ -31,7 +34,7 @@ internal class Program
         }
 
         app.UseHttpsRedirection();
-
+        app.UseCors("CorsPolicy");
         app.UseAuthorization();
 
         app.MapControllers();

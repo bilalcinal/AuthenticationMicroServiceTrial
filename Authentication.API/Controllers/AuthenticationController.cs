@@ -26,23 +26,24 @@ namespace Authentication.API.Controllers
         {
             try
             {
-                // JSON içeriğini HTTP isteği
-                var httpContent = new StringContent(JsonConvert.SerializeObject(userRegisterModel), Encoding.UTF8, "application/json");
+                // Kullanıcı kayıt modelini JSON formatına dönüştürüyoruz
+                string jsonContent = JsonConvert.SerializeObject(userRegisterModel);
 
-                // Gateway endpoint adresi
+                // JSON içeriğini HTTP isteği içeriği olarak ayarlıyoruz
+                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
-                // Gateway ana adresi ve endpoint adresi
-                var apiUrl = "https://localhost:7244" + "/Authentication/Register";
+                // Gateway endpoint adresini belirliyoruz
+                var endpoint = "/Account/CreateAccount";
+
+                // Gateway ana adresi ve endpoint adresini belirliyoruz
+                var gatewayBaseUrl = "https://localhost:7244";
+                var apiUrl = $"{gatewayBaseUrl}{endpoint}";
 
                 using (var client = new HttpClient())
                 {
                     // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
                     var response = await client.PostAsync(apiUrl, httpContent);
-
-                    if (!response.IsSuccessStatusCode)
-                    {
-                        return Ok("Kullanıcı kaydı oluşturulurken bir hata meydana geldi. Lütfen daha sonra tekrar deneyin.");
-                    }
+                    response.EnsureSuccessStatusCode(); // Hata durumunu kontrol ediyoruz
                 }
 
                 // Kullanıcının şifresini hash'leyip veritabanına kaydediyoruz
@@ -84,7 +85,67 @@ namespace Authentication.API.Controllers
             {
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
-        }       
+        }  
+        [HttpPost]
+        public async Task<IActionResult> Login(UserLoginModel userLoginModel)
+        {
+            try
+            {
+                string jsonContent = JsonConvert.SerializeObject(userLoginModel);
+
+                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+                // Gateway endpoint adresini belirliyoruz
+                var endpoint = "/Account/AccountCheck";
+
+                // Gateway ana adresi ve endpoint adresini belirliyoruz
+                var gatewayBaseUrl = "https://localhost:7244";
+                var apiUrl = $"{gatewayBaseUrl}{endpoint}";
+
+                using (var client = new HttpClient())
+                {
+                    var response = await client.PostAsync(apiUrl, httpContent);
+                    if (response.IsSuccessStatusCode)
+                    {
+                        bool isPasswordValid = HashingHelper.VerifyPasswordHash(userLoginModel.Password,);
+
+                        if (!isPasswordValid)
+                        {
+                            return Unauthorized(); // Şifre doğrulanamazsa Unauthorized döndürülür
+                        }
+                        // Kullanıcının hesabı doğrulandıysa JWT Token oluşturulur
+                        var tokenHandler = new JwtSecurityTokenHandler();
+                        var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
+                        var tokenDescriptor = new SecurityTokenDescriptor
+                        {
+                            Subject = new ClaimsIdentity(new Claim[]
+                            {
+                                new Claim(ClaimTypes.Email, userLoginModel.Email)
+                            }),
+                            Expires = DateTime.UtcNow.AddDays(7), // Token süresi
+                            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                        };
+                        var token = tokenHandler.CreateToken(tokenDescriptor);
+                        var tokenString = tokenHandler.WriteToken(token);
+
+                        return Ok(new { Token = tokenString });
+                    }
+                    else
+                    {
+                        return Unauthorized(); 
+                    }
+                }
+            }
+            catch (HttpRequestException ex)
+            {
+                return StatusCode(500, "Gateway error: " + ex.Message);
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, "Internal error: " + ex.Message);
+            }
+        }
+   
                  /*
                  *  1- Kullanıcının hesabı var mı yok mu kontrol edilir
                  *  2- JWT Token oluşturulur

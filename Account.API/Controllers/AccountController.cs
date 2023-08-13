@@ -38,6 +38,7 @@ namespace Account.API.Controllers
 
             return Ok(user);
         }
+
         [HttpPost]
         public async Task<IActionResult> CreateAccount(UserModel userModel )
         {
@@ -48,15 +49,14 @@ namespace Account.API.Controllers
               Phone = userModel.Phone,
               CreatedDate = DateTime.UtcNow
             };
-           
-            _accountDbContext.User.Add(User);
+             _accountDbContext.User.Add(User);
              await _accountDbContext.SaveChangesAsync();
 
             return Ok();
         }
         [HttpPost]
         [Authorize]
-        public async Task<IActionResult> UpdateAccount(UserModel userModel)
+        public async Task<IActionResult> UpdateAccount(int Id, UserModel userModel)
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
@@ -65,20 +65,24 @@ namespace Account.API.Controllers
                 return Unauthorized();
             }
 
-            var user = await _accountDbContext.User.Where(x => x.Email == userId).FirstOrDefaultAsync();
-
+            var user = await _accountDbContext.User.Where(x => x.Id == Id).FirstOrDefaultAsync();
+            
             if (user == null)
             {
                 return NotFound("Girdiğiniz bilgiler yanlış veya kayıt edilmemiş. Tekrar deneyiniz");
             }
+               user.FirstName = userModel.FirstName;
+                user.LastName = userModel.LastName;
+                user.Email = userModel.Email;
+                user.Phone = userModel.Phone;
+                user.ModifiedDate = userModel.ModifiedDate;
 
-            user.FirstName = userModel.FirstName;
-            user.LastName = userModel.LastName;
-            user.Email = userModel.Email;
-            user.Phone = userModel.Phone;
+                _accountDbContext.User.Update(user);
+                await _accountDbContext.SaveChangesAsync();
 
-            _accountDbContext.User.Update(user);
-            await _accountDbContext.SaveChangesAsync();
+                
+
+            
 
             return Ok("Kullanıcı bilgileri güncellendi");
         }
