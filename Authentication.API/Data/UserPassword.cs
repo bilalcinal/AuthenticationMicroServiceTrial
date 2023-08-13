@@ -8,7 +8,7 @@ namespace Authentication.API.Data
 {
     public class UserPassword : BaseEntity
     {
-         public byte[] PasswordSalt { get; set; }
+        public byte[] PasswordSalt { get; set; }
         public byte[] PasswordHash { get; set; }
         
     }

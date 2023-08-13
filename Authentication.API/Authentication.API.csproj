@@ -16,11 +16,9 @@
 
   <ItemGroup>
     <None Remove="Controllers\" />
-    <None Remove="Security\JWT\" />
   </ItemGroup>
   <ItemGroup>
     <Folder Include="Controllers\" />
-    <Folder Include="Security\JWT\" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\Core\Core.csproj">
