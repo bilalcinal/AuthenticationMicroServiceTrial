@@ -1,9 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text;
 using Account.API.Data;
 using Account.API.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using Newtonsoft.Json;
 using AccountEntity = Account.API.Data.Account;
 
 
@@ -19,7 +23,7 @@ namespace Account.API.Controllers
         {
             _accountDbContext = dbContext;
         }
-        
+
         [HttpGet]
         public async Task<IActionResult> AccountCheck(string Email)
         {
@@ -54,18 +58,18 @@ namespace Account.API.Controllers
         }
 
         [HttpPost]
-        public async Task<AccountGetAccountModel> CreateAccount(AccountModel accountModel )
+        public async Task<AccountGetAccountModel> CreateAccount(AccountModel accountModel)
         {
             var account = new AccountEntity
-            {    
-              FirstName = accountModel.FirstName,
-              LastName = accountModel.LastName,
-              Email = accountModel.Email,
-              Phone = accountModel.Phone,
-              CreatedDate = DateTime.UtcNow
+            {
+                FirstName = accountModel.FirstName,
+                LastName = accountModel.LastName,
+                Email = accountModel.Email,
+                Phone = accountModel.Phone,
+                CreatedDate = DateTime.UtcNow
             };
-             _accountDbContext.Accounts.Add(account);
-             await _accountDbContext.SaveChangesAsync();
+            _accountDbContext.Accounts.Add(account);
+            await _accountDbContext.SaveChangesAsync();
 
             var response = new AccountGetAccountModel
             {
@@ -78,25 +82,83 @@ namespace Account.API.Controllers
 
             return response;
         }
-        
+
         [HttpPost]
-        public async Task<IActionResult> UpdateAccount(int Id, AccountModel accountModel)
+        public async Task<IActionResult> UpdateAccount(AccountModel accountModel)
         {
-             var account = await _accountDbContext.Accounts.Where(x => x.Id == Id).FirstOrDefaultAsync();
-            
-            if (account == null)
+            try
             {
-                return NotFound("Girdiğiniz bilgiler yanlış veya kayıt edilmemiş. Tekrar deneyiniz");
-            }
-               account.FirstName = accountModel.FirstName;
+                // İstek başlığından JWT token onaylama
+                var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
+
+                ClaimsPrincipal principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                // Token süresi kontrolü
+                if (validatedToken.ValidTo < DateTime.UtcNow)
+                {
+                    return Unauthorized();
+                }
+
+                // Token'dan email çekiliyor
+                var userEmailClaim = principal.FindFirst(ClaimTypes.Email);
+                if (userEmailClaim == null)
+                {
+                    return Unauthorized();
+                }
+                var userEmail = userEmailClaim.Value;
+
+                var account = await _accountDbContext.Accounts
+                    .Where(x => x.Email == userEmail)
+                    .FirstOrDefaultAsync();
+
+                if (account == null)
+                {
+                    return NotFound("Kullanıcı bulunamadı veya yetkisiz işlem.");
+                }
+                account.FirstName = accountModel.FirstName;
                 account.LastName = accountModel.LastName;
                 account.Email = accountModel.Email;
                 account.Phone = accountModel.Phone;
-                account.ModifiedDate = accountModel.ModifiedDate;
+                account.ModifiedDate = DateTime.UtcNow; // Güncelleme tarihi değiştiriliyor
 
                 _accountDbContext.Accounts.Update(account);
                 await _accountDbContext.SaveChangesAsync();
-                return Ok("Kullanıcı bilgileri güncellendi");
+
+                // Jwt oluşturuyoruz
+                var tokenDescriptor = new SecurityTokenDescriptor
+                {
+                    Subject = new ClaimsIdentity(new Claim[]
+                    {
+                new Claim(ClaimTypes.Email, userEmail)
+                    }),
+                    Expires = DateTime.UtcNow.AddMinutes(10),
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                };
+                var newToken = tokenHandler.CreateToken(tokenDescriptor);
+                var newTokenString = tokenHandler.WriteToken(newToken);
+
+                return Ok(new { Token = newTokenString, Message = "Kullanıcı bilgileri güncellendi" });
+
+
+            }
+            catch (Exception ex)
+            {
+                // Hata yönetimi burada yapılabilir
+                return StatusCode(500, "Sunucu hatası");
+            }
         }
+
+
     }
 }
+         
+

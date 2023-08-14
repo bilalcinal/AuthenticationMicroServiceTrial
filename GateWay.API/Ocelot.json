@@ -1,66 +1,78 @@
 {
-    "Routes": [
+  "Routes": [
+    {
+      "DownstreamPathTemplate": "/api/Authentication/Register",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
         {
-            "DownstreamPathTemplate": "/api/Authentication/Register",
-            "DownstreamScheme": "https",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 7155
-                }
-            ],
-            "UpstreamPathTemplate": "/Authentication/Register",
-            "UpstreamHttpMethod": [ "Post" ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Account/CreateAccount",
-            "DownstreamScheme": "https",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 7153
-                }
-            ],
-            "UpstreamPathTemplate": "/Account/CreateAccount",
-            "UpstreamHttpMethod": [ "Post" ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Authentication/Login",
-            "DownstreamScheme": "https",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 7155
-                }
-            ],
-            "UpstreamPathTemplate": "/Authentication/Login",
-            "UpstreamHttpMethod": [ "Post" ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Account/AccountCheck",
-            "DownstreamScheme": "https",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 7153
-                }
-            ],
-            "UpstreamPathTemplate": "/Account/AccountCheck",
-            "UpstreamHttpMethod": [ "Get" ]
-        },
-        {
-            "DownstreamPathTemplate": "/api/Account/GetAccount",
-            "DownstreamScheme": "https",
-            "DownstreamHostAndPorts": [
-                {
-                    "Host": "localhost",
-                    "Port": 7153
-                }
-            ],
-            "UpstreamPathTemplate": "/Account/GetAccount",
-            "UpstreamHttpMethod": [ "Get" ]
+          "Host": "localhost",
+          "Port": 7155
         }
-    ],
+      ],
+      "UpstreamPathTemplate": "/Authentication/Register",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Account/CreateAccount",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7153
+        }
+      ],
+      "UpstreamPathTemplate": "/Account/CreateAccount",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Authentication/Login",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7155
+        }
+      ],
+      "UpstreamPathTemplate": "/Authentication/Login",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Account/GetAccount",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7153
+        }
+      ],
+      "UpstreamPathTemplate": "/Account/GetAccount",
+      "UpstreamHttpMethod": [ "Get" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Account/UpdateAccount",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7153
+        }
+      ],
+      "UpstreamPathTemplate": "/Account/UpdateAccount",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Authentication/Update",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7155
+        }
+      ],
+      "UpstreamPathTemplate": "/Authentication/Update",
+      "UpstreamHttpMethod": [ "Post" ]
+    }
+  ],
     "GlobalConfiguration": {
         "BaseUrl": "https://localhost:7244"
     }

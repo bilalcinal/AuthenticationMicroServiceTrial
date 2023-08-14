@@ -14,6 +14,10 @@ using Microsoft.AspNetCore.Identity;
 using Ocelot.Responses;
 using System.Reflection.Metadata.Ecma335;
 using Ocelot.Errors;
+using Microsoft.AspNetCore.Authorization;
+using Newtonsoft.Json.Linq;
+using Ocelot.Middleware;
+using System.Net;
 
 namespace Authentication.API.Controllers
 {
@@ -148,7 +152,7 @@ namespace Authentication.API.Controllers
                             {
                                 new Claim(ClaimTypes.Email, model.Email)
                             }),
-                            Expires = DateTime.UtcNow.AddDays(7), // Token süresi
+                            Expires = DateTime.UtcNow.AddMinutes(10), // Token süresi
                             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                         };
                         var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -171,18 +175,13 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
         }
-        public async Task<IActionResult> Update(AuthUpdateRequestModel authUpdateRequestModel)
-        {
-          /* Hesap önce Autheroizemı değilmi diye kontrol edilecek
-           * Ocelot ile Account UpdateAccount a giderek update işlemlerini yapacak
-           */ 
-        }
         public async Task<IActionResult> UpdatePassword()
         {
             /* Hesap önce Autheroizemı değilmi diye kontrol edilecek
-             * hesaptan password girilmesi istenecek ve daha sonra HttpClient.VerifyPasswordHash ile 
+             * hesaptan  şuan ki password girilmesi istenecek ve daha sonra HttpClient.VerifyPasswordHash ile 
                girilen password ile database de ki password karşılaştırılacak
-             *
+             * Yeni şifre girilecek ve bu şifre yine hashlenip saltlanarak veritabanına kayıt edilecek
+             * En son Jwt token oluşturarak response olarak token döndürecek
              */
 
         }
