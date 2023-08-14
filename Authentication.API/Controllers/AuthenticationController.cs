@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Newtonsoft.Json.Linq;
 using Ocelot.Middleware;
 using System.Net;
+using Account.API.Data;
 
 namespace Authentication.API.Controllers
 {
@@ -177,16 +178,70 @@ namespace Authentication.API.Controllers
         }
         public async Task<IActionResult> UpdatePassword()
         {
-            /* Hesap önce Autheroizemı değilmi diye kontrol edilecek
-             * hesaptan  şuan ki password girilmesi istenecek ve daha sonra HttpClient.VerifyPasswordHash ile 
-               girilen password ile database de ki password karşılaştırılacak
-             * Yeni şifre girilecek ve bu şifre yine hashlenip saltlanarak veritabanına kayıt edilecek
-             * En son Jwt token oluşturarak response olarak token döndürecek
-             */
+            try
+            {
+                // JWT token onaylama
+                var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
+                var tokenHandler = new JwtSecurityTokenHandler();
+                var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
 
+                ClaimsPrincipal principal = tokenHandler.ValidateToken(token, new TokenValidationParameters
+                {
+                    ValidateIssuerSigningKey = true,
+                    IssuerSigningKey = new SymmetricSecurityKey(key),
+                    ValidateIssuer = false,
+                    ValidateAudience = false,
+                    ClockSkew = TimeSpan.Zero
+                }, out SecurityToken validatedToken);
+
+                // Token süresi kontrolü
+                if (validatedToken.ValidTo < DateTime.UtcNow)
+                {
+                    return Unauthorized();
+                }
+
+                // Token'dan email çekiliyor
+                var userEmailClaim = principal.FindFirst(ClaimTypes.Email);
+                if (userEmailClaim == null)
+                {
+                    return Unauthorized();
+                }
+                var userEmail = userEmailClaim.Value;
+                /* Jwt tokenden email alınacak
+                 * Ocelot ile alınan emailin ıd si ile account bilgisi çekilecek
+                 * AccountId ile password bulunacak
+                 * daha sonra HttpClient.VerifyPasswordHash ile 
+                   girilen password ile database de ki password karşılaştırılacak
+                 * Eğer hepsi doğru ise girilen yeni şifre hashlenip saltlanarak veritabanına kayıt edilecek
+                 * En son Jwt token oluşturarak response olarak token döndürecek
+                 */
+
+                // Jwt oluşturuyoruz
+                var tokenDescriptor = new SecurityTokenDescriptor
+                {
+                    Subject = new ClaimsIdentity(new Claim[]
+                    {
+                new Claim(ClaimTypes.Email, userEmail)
+                    }),
+                    Expires = DateTime.UtcNow.AddMinutes(10),
+                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                };
+                var newToken = tokenHandler.CreateToken(tokenDescriptor);
+                var newTokenString = tokenHandler.WriteToken(newToken);
+
+                return Ok(new { Token = newTokenString, Message = "Kullanıcı bilgileri güncellendi" });
+
+
+            }
+            catch (Exception ex)
+            {
+                // Hata yönetimi burada yapılabilir
+                return StatusCode(500, "Sunucu hatası");
+            }
         }
     }
 }
+
 
 
 

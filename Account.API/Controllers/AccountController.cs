@@ -88,7 +88,7 @@ namespace Account.API.Controllers
         {
             try
             {
-                // İstek başlığından JWT token onaylama
+                // JWT token onaylama
                 var token = Request.Headers["Authorization"].ToString().Replace("Bearer ", "");
                 var tokenHandler = new JwtSecurityTokenHandler();
                 var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
