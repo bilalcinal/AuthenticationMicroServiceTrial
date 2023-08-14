@@ -1,12 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
+using Account.API.Model;
 using Authentication.API.Data;
 using Authentication.API.Model;
 using Authentication.API.Security.Hashing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using System.Linq;
+using Microsoft.EntityFrameworkCore;
 
 namespace Authentication.API.Controllers
 {
@@ -18,16 +21,16 @@ namespace Authentication.API.Controllers
 
         public AuthenticationController(AuthenticationDbContext dbContext)
         {
-                _authenticationDbContext = dbContext;
+            _authenticationDbContext = dbContext;
         }
 
         [HttpPost] 
-        public async Task<IActionResult> Register(UserRegisterModel userRegisterModel) 
+        public async Task<AuthRegisterResponseModel> Register(AuthRegisterRequestModel AccountRegisterModel) 
         {
             try
             {
                 // Kullanıcı kayıt modelini JSON formatına dönüştürüyoruz
-                string jsonContent = JsonConvert.SerializeObject(userRegisterModel);
+                string jsonContent = JsonConvert.SerializeObject(AccountRegisterModel);
 
                 // JSON içeriğini HTTP isteği içeriği olarak ayarlıyoruz
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
@@ -39,23 +42,28 @@ namespace Authentication.API.Controllers
                 var gatewayBaseUrl = "https://localhost:7244";
                 var apiUrl = $"{gatewayBaseUrl}{endpoint}";
 
+
+                var accountData = new AccountGetAccountModel();
                 using (var client = new HttpClient())
                 {
                     // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
-                    var response = await client.PostAsync(apiUrl, httpContent);
-                    response.EnsureSuccessStatusCode(); // Hata durumunu kontrol ediyoruz
+                    var restResponse = await client.PostAsync(apiUrl, httpContent);
+                    var responseString = await restResponse.Content.ReadAsStringAsync();
+                    accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
+                    restResponse.EnsureSuccessStatusCode();
                 }
 
                 // Kullanıcının şifresini hash'leyip veritabanına kaydediyoruz
-                HashingHelper.CreatePasswordHash(userRegisterModel.Password, out var passwordHash, out var passwordSalt);
+                HashingHelper.CreatePasswordHash(AccountRegisterModel.Password, out var passwordHash, out var passwordSalt);
 
-                var userPassword = new UserPassword
+                var AccountPassword = new AuthPassword
                 {
+                    AccountId = accountData.Id,
                     PasswordHash = passwordHash,
                     PasswordSalt = passwordSalt
                 };
 
-                _authenticationDbContext.Add(userPassword);
+                _authenticationDbContext.Add(AccountPassword);
                 await _authenticationDbContext.SaveChangesAsync();
 
 
@@ -66,7 +74,7 @@ namespace Authentication.API.Controllers
                 {
                     Subject = new ClaimsIdentity(new Claim[]
                     {
-                        new Claim(ClaimTypes.Email, userRegisterModel.Email)
+                        new Claim(ClaimTypes.Email, AccountRegisterModel.Email)
 
                     }),
                     Expires = DateTime.UtcNow.AddDays(7), // Token süresi
@@ -74,29 +82,32 @@ namespace Authentication.API.Controllers
                 };
                 var token = tokenHandler.CreateToken(tokenDescriptor);
                 var tokenString = tokenHandler.WriteToken(token);
+                
+                var response = new AuthRegisterResponseModel
+                {
+                    Token = tokenString
+                };
 
-                return Ok(new { Token = tokenString });
+                return response;
             }
             catch (HttpRequestException ex)
             {
-                return StatusCode(500, "Gateway error: " + ex.Message);
+                // model oluştur reponse dön
+                return null;
             }
             catch (Exception ex)
             {
-                return StatusCode(500, "Internal error: " + ex.Message);
+                return null;
             }
-        }  
+        }
+
         [HttpPost]
-        public async Task<IActionResult> Login(UserLoginModel userLoginModel)
+        public async Task<IActionResult> Login(AuthLoginModel model)
         {
             try
             {
-                string jsonContent = JsonConvert.SerializeObject(userLoginModel);
-
-                var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
-
                 // Gateway endpoint adresini belirliyoruz
-                var endpoint = "/Account/AccountCheck";
+                var endpoint = "/Account/GetAccount?email=" + model.Email;
 
                 // Gateway ana adresi ve endpoint adresini belirliyoruz
                 var gatewayBaseUrl = "https://localhost:7244";
@@ -104,10 +115,18 @@ namespace Authentication.API.Controllers
 
                 using (var client = new HttpClient())
                 {
-                    var response = await client.PostAsync(apiUrl, httpContent);
-                    if (response.IsSuccessStatusCode)
+                    var restResponse = await client.GetAsync(apiUrl);
+                    if (restResponse.IsSuccessStatusCode)
                     {
-                        bool isPasswordValid = HashingHelper.VerifyPasswordHash(userLoginModel.Password,);
+                        // deaserialize object from response
+                        var responseString = await restResponse.Content.ReadAsStringAsync();
+                        var accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
+
+                        var accountPasswordData = await _authenticationDbContext.AuthPasswords
+                                                            .Where(p => p.AccountId == accountData.Id)
+                                                            .FirstOrDefaultAsync();
+
+                        bool isPasswordValid = HashingHelper.VerifyPasswordHash(model.Password, accountPasswordData.PasswordHash, accountPasswordData.PasswordSalt);
 
                         if (!isPasswordValid)
                         {
@@ -120,7 +139,7 @@ namespace Authentication.API.Controllers
                         {
                             Subject = new ClaimsIdentity(new Claim[]
                             {
-                                new Claim(ClaimTypes.Email, userLoginModel.Email)
+                                new Claim(ClaimTypes.Email, model.Email)
                             }),
                             Expires = DateTime.UtcNow.AddDays(7), // Token süresi
                             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
@@ -132,7 +151,7 @@ namespace Authentication.API.Controllers
                     }
                     else
                     {
-                        return Unauthorized(); 
+                        return NotFound(); 
                     }
                 }
             }

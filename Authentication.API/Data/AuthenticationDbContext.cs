@@ -8,12 +8,12 @@ namespace Authentication.API.Data
 {
     public class AuthenticationDbContext : DbContext
     {
-         public AuthenticationDbContext(DbContextOptions<AuthenticationDbContext>options) : base(options)
+      
+      public AuthenticationDbContext(DbContextOptions<AuthenticationDbContext>options) : base(options)
        {
         
        }
 
-       public DbSet<UserPassword> UserPassword { get; set; }
-        
+       public DbSet<AuthPassword> AuthPasswords { get; set; }
     }
 }

@@ -1,12 +1,11 @@
-using System;
-using System.Linq;
 using System.Security.Claims;
-using System.Threading.Tasks;
 using Account.API.Data;
 using Account.API.Model;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using AccountEntity = Account.API.Data.Account;
+
 
 namespace Account.API.Controllers
 {
@@ -14,12 +13,6 @@ namespace Account.API.Controllers
     [Route("api/[controller]/[action]")]
     public class AccountController : ControllerBase
     {
-        /*
-         * ACCOUNTCHECK
-         * GETACCOUNT
-         * CREATEACCOUNT
-         * UPDATEACCOUNT
-         */
         private readonly AccountDbContext _accountDbContext;
 
         public AccountController(AccountDbContext dbContext)
@@ -30,54 +23,79 @@ namespace Account.API.Controllers
         [HttpGet]
         public async Task<IActionResult> AccountCheck(string Email)
         {
-            var user = await _accountDbContext.User.Where(p => p.Email == Email).AnyAsync();
-            if (!user)
+            var account = await _accountDbContext.Accounts.Where(p => p.Email == Email).AnyAsync();
+            if (!account)
             {
                 return NotFound();
             }
 
-            return Ok(user);
+            return Ok(account);
         }
 
-        [HttpPost]
-        public async Task<IActionResult> CreateAccount(UserModel userModel )
+        [HttpGet]
+        public async Task<AccountGetAccountModel> GetAccount(string Email)
         {
-            var User = new User{
-              FirstName = userModel.FirstName,
-              LastName = userModel.LastName,
-              Email = userModel.Email,
-              Phone = userModel.Phone,
-              CreatedDate = DateTime.UtcNow
-            };
-             _accountDbContext.User.Add(User);
-             await _accountDbContext.SaveChangesAsync();
-
-            return Ok();
-        }
-        [HttpPost]
-        [Authorize]
-        public async Task<IActionResult> UpdateAccount(int Id, UserModel userModel)
-        {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-
-            if (userId == null)
+            var account = await _accountDbContext.Accounts.Where(p => p.Email == Email).Select(p => new AccountGetAccountModel()
             {
-                return Unauthorized();
+                Id = p.Id,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                Email = p.Email,
+                Phone = p.Phone
+            }).FirstOrDefaultAsync();
+
+            if (account == null)
+            {
+                return null;
             }
 
-            var user = await _accountDbContext.User.Where(x => x.Id == Id).FirstOrDefaultAsync();
+            return account;
+
+        }
+
+        [HttpPost]
+        public async Task<AccountGetAccountModel> CreateAccount(AccountModel accountModel )
+        {
+            var account = new AccountEntity
+            {    
+              FirstName = accountModel.FirstName,
+              LastName = accountModel.LastName,
+              Email = accountModel.Email,
+              Phone = accountModel.Phone,
+              CreatedDate = DateTime.UtcNow
+            };
+             _accountDbContext.Accounts.Add(account);
+             await _accountDbContext.SaveChangesAsync();
+
+            var response = new AccountGetAccountModel
+            {
+                Id = account.Id,
+                FirstName = account.FirstName,
+                LastName = account.LastName,
+                Email = account.Email,
+                Phone = account.Phone,
+            };
+
+            return response;
+        }
+        
+        [HttpPost]
+        [Authorize]
+        public async Task<IActionResult> UpdateAccount(int Id, AccountModel accountModel)
+        {
+             var account = await _accountDbContext.Accounts.Where(x => x.Id == Id).FirstOrDefaultAsync();
             
-            if (user == null)
+            if (account == null)
             {
                 return NotFound("Girdiğiniz bilgiler yanlış veya kayıt edilmemiş. Tekrar deneyiniz");
             }
-               user.FirstName = userModel.FirstName;
-                user.LastName = userModel.LastName;
-                user.Email = userModel.Email;
-                user.Phone = userModel.Phone;
-                user.ModifiedDate = userModel.ModifiedDate;
+               account.FirstName = accountModel.FirstName;
+                account.LastName = accountModel.LastName;
+                account.Email = accountModel.Email;
+                account.Phone = accountModel.Phone;
+                account.ModifiedDate = accountModel.ModifiedDate;
 
-                _accountDbContext.User.Update(user);
+                _accountDbContext.Accounts.Update(account);
                 await _accountDbContext.SaveChangesAsync();
 
                 
@@ -86,24 +104,5 @@ namespace Account.API.Controllers
 
             return Ok("Kullanıcı bilgileri güncellendi");
         }
-
-
-        [HttpGet]
-        public async Task<IActionResult> GetAccount(string Email)
-        {
-            var user = await _accountDbContext.User.Where(p => p.Email == Email).ToListAsync();
-
-            if (user == null)
-            {
-                return NotFound("Böyle bir hesap bulunmamaktadır. Lütfen geçerli bir hesap giriniz!");
-            }
-
-            return Ok(user);
-
-        }
-
-        
-
-        
     }
 }

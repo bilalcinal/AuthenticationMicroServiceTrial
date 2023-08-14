@@ -6,7 +6,7 @@ using Core;
 
 namespace Authentication.API.Model
 {
-    public class UserRegisterModel 
+    public class AuthRegisterRequestModel
     {
         public string  FirstName { get; set; }
         public string LastName { get; set; }
