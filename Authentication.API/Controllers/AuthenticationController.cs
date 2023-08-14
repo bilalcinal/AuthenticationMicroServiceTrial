@@ -29,12 +29,12 @@ namespace Authentication.API.Controllers
         }
 
         [HttpPost] 
-        public async Task<AuthRegisterResponseModel> Register(AuthRegisterRequestModel AccountRegisterModel) 
+        public async Task<AuthRegisterResponseModel> Register(AuthRegisterRequestModel AuthRegisterRequestModel) 
         {
             try
             {
                 // Kullanıcı kayıt modelini JSON formatına dönüştürüyoruz
-                string jsonContent = JsonConvert.SerializeObject(AccountRegisterModel);
+                string jsonContent = JsonConvert.SerializeObject(AuthRegisterRequestModel);
 
                 // JSON içeriğini HTTP isteği içeriği olarak ayarlıyoruz
                 var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
@@ -46,30 +46,25 @@ namespace Authentication.API.Controllers
                 var gatewayBaseUrl = "https://localhost:7244";
                 var apiUrl = $"{gatewayBaseUrl}{endpoint}";
 
-
                 var accountData = new AccountGetAccountModel();
                 using (var client = new HttpClient())
-                {
-                    
-                    // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
+                {   // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
                     var restResponse = await client.PostAsync(apiUrl, httpContent);
                     var responseString = await restResponse.Content.ReadAsStringAsync();
                     accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
-                    if(AccountRegisterModel.Password != AccountRegisterModel.PasswordAgain)
-                    {
-                        var errorResponse = new AuthRegisterResponseModel
-                        {
-                            Error = "Şifreler eşleşmiyor. Lütfen tekrar deneyiniz!"
-                        };
-                        return errorResponse;
-                    }
-                    
                     restResponse.EnsureSuccessStatusCode();
+                }
+                if(AuthRegisterRequestModel.Password != AuthRegisterRequestModel.PasswordAgain)
+                {
+                    var errorResponse = new AuthRegisterResponseModel
+                    {
+                        Error = "Şifreler eşleşmiyor. Lütfen tekrar deneyiniz!"
+                    };
+                    return errorResponse;
                 }
                 
                 // Kullanıcının şifresini hash'leyip veritabanına kaydediyoruz
-                HashingHelper.CreatePasswordHash(AccountRegisterModel.Password, out var passwordHash, out var passwordSalt);
-
+                HashingHelper.CreatePasswordHash(AuthRegisterRequestModel.Password, out var passwordHash, out var passwordSalt);
                 var AccountPassword = new AuthPassword
                 {
                     AccountId = accountData.Id,
@@ -88,7 +83,7 @@ namespace Authentication.API.Controllers
                 {
                     Subject = new ClaimsIdentity(new Claim[]
                     {
-                        new Claim(ClaimTypes.Email, AccountRegisterModel.Email)
+                        new Claim(ClaimTypes.Email, AuthRegisterRequestModel.Email)
 
                     }),
                     Expires = DateTime.UtcNow.AddDays(7), // Token süresi
@@ -175,6 +170,21 @@ namespace Authentication.API.Controllers
             {
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
+        }
+        public async Task<IActionResult> Update(AuthUpdateRequestModel authUpdateRequestModel)
+        {
+          /* Hesap önce Autheroizemı değilmi diye kontrol edilecek
+           * Ocelot ile Account UpdateAccount a giderek update işlemlerini yapacak
+           */ 
+        }
+        public async Task<IActionResult> UpdatePassword()
+        {
+            /* Hesap önce Autheroizemı değilmi diye kontrol edilecek
+             * hesaptan password girilmesi istenecek ve daha sonra HttpClient.VerifyPasswordHash ile 
+               girilen password ile database de ki password karşılaştırılacak
+             *
+             */
+
         }
     }
 }

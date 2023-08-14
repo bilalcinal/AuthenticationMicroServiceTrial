@@ -80,7 +80,6 @@ namespace Account.API.Controllers
         }
         
         [HttpPost]
-        [Authorize]
         public async Task<IActionResult> UpdateAccount(int Id, AccountModel accountModel)
         {
              var account = await _accountDbContext.Accounts.Where(x => x.Id == Id).FirstOrDefaultAsync();
