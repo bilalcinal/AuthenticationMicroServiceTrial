@@ -10,6 +10,10 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.AspNetCore.Identity;
+using Ocelot.Responses;
+using System.Reflection.Metadata.Ecma335;
+using Ocelot.Errors;
 
 namespace Authentication.API.Controllers
 {
@@ -46,13 +50,23 @@ namespace Authentication.API.Controllers
                 var accountData = new AccountGetAccountModel();
                 using (var client = new HttpClient())
                 {
+                    
                     // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
                     var restResponse = await client.PostAsync(apiUrl, httpContent);
                     var responseString = await restResponse.Content.ReadAsStringAsync();
                     accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
+                    if(AccountRegisterModel.Password != AccountRegisterModel.PasswordAgain)
+                    {
+                        var errorResponse = new AuthRegisterResponseModel
+                        {
+                            Error = "Şifreler eşleşmiyor. Lütfen tekrar deneyiniz!"
+                        };
+                        return errorResponse;
+                    }
+                    
                     restResponse.EnsureSuccessStatusCode();
                 }
-
+                
                 // Kullanıcının şifresini hash'leyip veritabanına kaydediyoruz
                 HashingHelper.CreatePasswordHash(AccountRegisterModel.Password, out var passwordHash, out var passwordSalt);
 
@@ -125,12 +139,10 @@ namespace Authentication.API.Controllers
                         var accountPasswordData = await _authenticationDbContext.AuthPasswords
                                                             .Where(p => p.AccountId == accountData.Id)
                                                             .FirstOrDefaultAsync();
-
                         bool isPasswordValid = HashingHelper.VerifyPasswordHash(model.Password, accountPasswordData.PasswordHash, accountPasswordData.PasswordSalt);
-
                         if (!isPasswordValid)
                         {
-                            return Unauthorized(); // Şifre doğrulanamazsa Unauthorized döndürülür
+                            return NotFound(); // Şifre doğrulanamazsa NotFound döndürülür
                         }
                         // Kullanıcının hesabı doğrulandıysa JWT Token oluşturulur
                         var tokenHandler = new JwtSecurityTokenHandler();
@@ -164,13 +176,7 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
         }
-   
-                 /*
-                 *  1- Kullanıcının hesabı var mı yok mu kontrol edilir
-                 *  2- JWT Token oluşturulur
-                 *  3- Token response olarak döndürülür
-                 */
- }
+    }
 }
 
 

@@ -8,11 +8,11 @@ namespace Authentication.API.Model
 {
     public class AuthRegisterRequestModel
     {
-        public string  FirstName { get; set; }
+        public string FirstName { get; set; }
         public string LastName { get; set; }
         public string Email { get; set; }
         public string Phone { get; set; }
         public string Password { get; set; }
-        public string PaswordAgain { get; set; }
+        public string PasswordAgain { get; set; }
     }
 }

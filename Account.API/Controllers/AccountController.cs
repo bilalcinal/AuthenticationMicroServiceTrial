@@ -97,12 +97,7 @@ namespace Account.API.Controllers
 
                 _accountDbContext.Accounts.Update(account);
                 await _accountDbContext.SaveChangesAsync();
-
-                
-
-            
-
-            return Ok("Kullanıcı bilgileri güncellendi");
+                return Ok("Kullanıcı bilgileri güncellendi");
         }
     }
 }
