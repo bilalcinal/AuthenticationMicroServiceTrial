@@ -176,7 +176,8 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
         }
-        public async Task<IActionResult> UpdatePassword()
+        [HttpPost]
+        public async Task<IActionResult> UpdatePassword(AuthPasswordUpdateModel authPasswordUpdateModel)
         {
             try
             {
@@ -207,31 +208,60 @@ namespace Authentication.API.Controllers
                     return Unauthorized();
                 }
                 var userEmail = userEmailClaim.Value;
-                /* Jwt tokenden email alınacak
-                 * Ocelot ile alınan emailin ıd si ile account bilgisi çekilecek
-                 * AccountId ile password bulunacak
-                 * daha sonra HttpClient.VerifyPasswordHash ile 
-                   girilen password ile database de ki password karşılaştırılacak
-                 * Eğer hepsi doğru ise girilen yeni şifre hashlenip saltlanarak veritabanına kayıt edilecek
-                 * En son Jwt token oluşturarak response olarak token döndürecek
-                 */
 
-                // Jwt oluşturuyoruz
-                var tokenDescriptor = new SecurityTokenDescriptor
+                // Gateway endpoint adresi
+                var endpoint = $"/Account/GetAccount?email={userEmail}";
+
+                // Gateway ana adresi ve endpoint adresi
+                var gatewayBaseUrl = "https://localhost:7244";
+                var apiUrl = $"{gatewayBaseUrl}{endpoint}";
+
+                using (var client = new HttpClient())
                 {
-                    Subject = new ClaimsIdentity(new Claim[]
+                    var restResponse = await client.GetAsync(apiUrl);
+                    if (restResponse.IsSuccessStatusCode)
                     {
-                new Claim(ClaimTypes.Email, userEmail)
-                    }),
-                    Expires = DateTime.UtcNow.AddMinutes(10),
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-                };
-                var newToken = tokenHandler.CreateToken(tokenDescriptor);
-                var newTokenString = tokenHandler.WriteToken(newToken);
+                        // Gateway'den alınan veriyi deserialize ediyoruz
+                        var responseString = await restResponse.Content.ReadAsStringAsync();
+                        var accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
 
-                return Ok(new { Token = newTokenString, Message = "Kullanıcı bilgileri güncellendi" });
+                        // Kullanıcının eski şifre bilgisini alıyoruz
+                        var accountPasswordData = await _authenticationDbContext.AuthPasswords
+                                                            .Where(p => p.AccountId == accountData.Id)
+                                                            .FirstOrDefaultAsync();
+                        bool isPasswordValid = HashingHelper.VerifyPasswordHash(authPasswordUpdateModel.OldPassword, accountPasswordData.PasswordHash, accountPasswordData.PasswordSalt);
+                        if (!isPasswordValid)
+                        {
+                            return BadRequest("Eski şifre doğrulanamadı");
+                        }
 
+                        // Kullanıcının yeni şifresini hash'leyip güncelliyoruz
+                        HashingHelper.CreatePasswordHash(authPasswordUpdateModel.NewPassword, out var newPasswordHash, out var newPasswordSalt);
+                        accountPasswordData.PasswordHash = newPasswordHash;
+                        accountPasswordData.PasswordSalt = newPasswordSalt;
+                        accountPasswordData.ModifiedDate = DateTime.UtcNow; // ModifiedDate güncelleniyor
 
+                        _authenticationDbContext.Update(accountPasswordData);
+                        await _authenticationDbContext.SaveChangesAsync();
+
+                        // Yeni JWT token oluşturuyoruz
+                        var tokenDescriptor = new SecurityTokenDescriptor
+                        {
+                            Subject = new ClaimsIdentity(new Claim[]
+                            {
+                        new Claim(ClaimTypes.Email, userEmail)
+                            }),
+                            Expires = DateTime.UtcNow.AddMinutes(10),
+                            SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+                        };
+                        var newToken = tokenHandler.CreateToken(tokenDescriptor);
+                        var newTokenString = tokenHandler.WriteToken(newToken);
+
+                        return Ok(new { Token = newTokenString });
+                    }
+
+                    return BadRequest("Kullanıcı bilgileri alınamadı");
+                }
             }
             catch (Exception ex)
             {
@@ -241,6 +271,7 @@ namespace Authentication.API.Controllers
         }
     }
 }
+
 
 
 
