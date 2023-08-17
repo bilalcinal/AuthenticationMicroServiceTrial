@@ -176,6 +176,7 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
         }
+        
         [HttpPost]
         public async Task<IActionResult> UpdatePassword(AuthPasswordUpdateModel authPasswordUpdateModel)
         {
@@ -269,6 +270,8 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Sunucu hatası");
             }
         }
+
+
     }
 }
 
