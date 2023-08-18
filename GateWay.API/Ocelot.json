@@ -25,6 +25,18 @@
       "UpstreamHttpMethod": [ "Post" ]
     },
     {
+      "DownstreamPathTemplate": "/api/Notification/SendEmail",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7200
+        }
+      ],
+      "UpstreamPathTemplate": "/Notification/SendEmail",
+      "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
       "DownstreamPathTemplate": "/api/Authentication/Login",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
@@ -37,7 +49,7 @@
       "UpstreamHttpMethod": [ "Post" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Account/GetAccount",
+      "DownstreamPathTemplate": "/api/Account/GetAccount?email={email}",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -45,7 +57,7 @@
           "Port": 7153
         }
       ],
-      "UpstreamPathTemplate": "/Account/GetAccount",
+      "UpstreamPathTemplate": "/Account/GetAccount?email={email}",
       "UpstreamHttpMethod": [ "Get" ]
     },
     {
@@ -61,7 +73,7 @@
       "UpstreamHttpMethod": [ "Post" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Authentication/Update",
+      "DownstreamPathTemplate": "/api/Authentication/UpdatePassword",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -69,9 +81,11 @@
           "Port": 7155
         }
       ],
-      "UpstreamPathTemplate": "/Authentication/Update",
+      "UpstreamPathTemplate": "/Authentication/UpdatePassword",
       "UpstreamHttpMethod": [ "Post" ]
     }
+    
+
   ],
     "GlobalConfiguration": {
         "BaseUrl": "https://localhost:7244"

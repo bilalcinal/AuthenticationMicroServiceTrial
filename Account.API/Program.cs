@@ -11,7 +11,7 @@ builder.Services.AddCors(p => p.AddPolicy("CorsPolicy", builder =>
 {
     builder.WithOrigins("*").AllowAnyMethod().AllowAnyHeader();
 }));
-// AccountDbContext'i burada ekleyin
+
 builder.Services.AddDbContext<AccountDbContext>(options =>
 {
     options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"));

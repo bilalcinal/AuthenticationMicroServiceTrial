@@ -1,4 +1,4 @@
-﻿namespace Notifacition.API.Model
+﻿namespace Notification.API.Model
 {
     public class EmailModel
     {

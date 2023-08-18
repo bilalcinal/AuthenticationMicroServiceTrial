@@ -19,6 +19,7 @@ using Newtonsoft.Json.Linq;
 using Ocelot.Middleware;
 using System.Net;
 using Account.API.Data;
+using Notification.API.Model;
 
 namespace Authentication.API.Controllers
 {
@@ -53,7 +54,7 @@ namespace Authentication.API.Controllers
 
                 var accountData = new AccountGetAccountModel();
                 using (var client = new HttpClient())
-                {   // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
+                {    // Gateway üzerinden kullanıcı kayıt isteği atıyoruz
                     var restResponse = await client.PostAsync(apiUrl, httpContent);
                     var responseString = await restResponse.Content.ReadAsStringAsync();
                     accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
@@ -67,7 +68,7 @@ namespace Authentication.API.Controllers
                     };
                     return errorResponse;
                 }
-                
+
                 // Kullanıcının şifresini hash'leyip veritabanına kaydediyoruz
                 HashingHelper.CreatePasswordHash(AuthRegisterRequestModel.Password, out var passwordHash, out var passwordSalt);
                 var AccountPassword = new AuthPassword
@@ -80,33 +81,35 @@ namespace Authentication.API.Controllers
                 _authenticationDbContext.Add(AccountPassword);
                 await _authenticationDbContext.SaveChangesAsync();
 
+                //Kullanıcının mailine sisteme hoşgeldin mail'i yolluyoruz
+                var sendMailEndpoint = "/Notification/SendEmail"; 
+                var NotificationApiUrl = $"{gatewayBaseUrl}{sendMailEndpoint}";
 
-                //JWT oluşturuluyor
-                var tokenHandler = new JwtSecurityTokenHandler();
-                var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
-                var tokenDescriptor = new SecurityTokenDescriptor
+                var emailModel = new EmailModel
                 {
-                    Subject = new ClaimsIdentity(new Claim[]
+                    ToEmail = AuthRegisterRequestModel.Email,
+                    Subject = "Hoş Geldiniz!", 
+                    Body = "Merhaba, hoş geldiniz!" 
+                };
+                using (var NotificationClient = new HttpClient())
+                {
+                    var mailContentJson = JsonConvert.SerializeObject(emailModel);
+
+                    var mailHttpContent = new StringContent(mailContentJson, Encoding.UTF8, "application/json");
+
+                    var NotificationResponse = await NotificationClient.PostAsync(NotificationApiUrl, mailHttpContent);
+                    NotificationResponse.EnsureSuccessStatusCode();
+
+                    var successResponse = new AuthRegisterResponseModel
                     {
-                        new Claim(ClaimTypes.Email, AuthRegisterRequestModel.Email)
-
-                    }),
-                    Expires = DateTime.UtcNow.AddDays(7), // Token süresi
-                    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-                };
-                var token = tokenHandler.CreateToken(tokenDescriptor);
-                var tokenString = tokenHandler.WriteToken(token);
-                
-                var response = new AuthRegisterResponseModel
-                {
-                    Token = tokenString
-                };
-
-                return response;
+                        Success = "Kayıt başarıyla tamamlandı. Hoş geldin maili gönderildi."
+                    };
+                    return successResponse;
+                }
             }
             catch (HttpRequestException ex)
             {
-                // model oluştur reponse dön
+               
                 return null;
             }
             catch (Exception ex)
@@ -114,6 +117,28 @@ namespace Authentication.API.Controllers
                 return null;
             }
         }
+        ////JWT oluşturuluyor
+        //var tokenHandler = new JwtSecurityTokenHandler();
+        //var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
+        //var tokenDescriptor = new SecurityTokenDescriptor
+        //{
+        //    Subject = new ClaimsIdentity(new Claim[]
+        //    {
+        //                new Claim(ClaimTypes.Email, AuthRegisterRequestModel.Email)
+
+        //    }),
+        //    Expires = DateTime.UtcNow.AddDays(7), // Token süresi
+        //    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+        //};
+        //var token = tokenHandler.CreateToken(tokenDescriptor);
+        //var tokenString = tokenHandler.WriteToken(token);
+
+        //var response = new AuthRegisterResponseModel
+        //{
+        //    Token = tokenString
+        //};
+
+        //        return response;
 
         [HttpPost]
         public async Task<IActionResult> Login(AuthLoginModel model)

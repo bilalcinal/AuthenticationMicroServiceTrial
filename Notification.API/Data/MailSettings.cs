@@ -1,4 +1,4 @@
-﻿namespace Notifacition.API.Data
+﻿namespace Notification.API.Data
 {
     public class MailSettings
     {
