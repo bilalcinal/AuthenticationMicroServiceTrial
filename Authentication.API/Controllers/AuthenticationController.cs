@@ -10,16 +10,9 @@ using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Identity;
-using Ocelot.Responses;
-using System.Reflection.Metadata.Ecma335;
-using Ocelot.Errors;
-using Microsoft.AspNetCore.Authorization;
-using Newtonsoft.Json.Linq;
-using Ocelot.Middleware;
-using System.Net;
-using Account.API.Data;
 using Notification.API.Model;
+using Microsoft.AspNetCore.Authentication;
+using Authentication.API.Security.AccessToken;
 
 namespace Authentication.API.Controllers
 {
@@ -81,16 +74,30 @@ namespace Authentication.API.Controllers
                 _authenticationDbContext.Add(AccountPassword);
                 await _authenticationDbContext.SaveChangesAsync();
 
-                //Kullanıcının mailine sisteme hoşgeldin mail'i yolluyoruz
-                var sendMailEndpoint = "/Notification/SendEmail"; 
+                // Kullanıcıya token gönderme işlemi
+                var tokenGenerator = new TokenGenerator();
+                var token = tokenGenerator.GenerateToken();
+                var authToken = new AuthAccessToken
+                {
+                    AccountId = accountData.Id,
+                    Token = token,
+                    Expires = DateTime.UtcNow.AddMinutes(5) // Örnek olarak 5dk ayarlandı
+                };
+
+                _authenticationDbContext.Add(authToken);
+                await _authenticationDbContext.SaveChangesAsync();
+
+                // Kullanıcıya tokenin gönderilmesi
+                var sendMailEndpoint = "/Notification/SendEmail";
                 var NotificationApiUrl = $"{gatewayBaseUrl}{sendMailEndpoint}";
 
                 var emailModel = new EmailModel
                 {
                     ToEmail = AuthRegisterRequestModel.Email,
-                    Subject = "Hoş Geldiniz!", 
-                    Body = "Merhaba, hoş geldiniz!" 
+                    Subject = "Hoş Geldiniz!",
+                    Body = $"Merhaba, hoş geldiniz! Kaydınızı tamamlamak için tokeninizi girmeniz gerekmektedir: {token}"
                 };
+
                 using (var NotificationClient = new HttpClient())
                 {
                     var mailContentJson = JsonConvert.SerializeObject(emailModel);
@@ -117,28 +124,31 @@ namespace Authentication.API.Controllers
                 return null;
             }
         }
-        ////JWT oluşturuluyor
-        //var tokenHandler = new JwtSecurityTokenHandler();
-        //var key = Encoding.ASCII.GetBytes("3KBsVR697nrsqxfvvjlZDw==");
-        //var tokenDescriptor = new SecurityTokenDescriptor
-        //{
-        //    Subject = new ClaimsIdentity(new Claim[]
-        //    {
-        //                new Claim(ClaimTypes.Email, AuthRegisterRequestModel.Email)
 
-        //    }),
-        //    Expires = DateTime.UtcNow.AddDays(7), // Token süresi
-        //    SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-        //};
-        //var token = tokenHandler.CreateToken(tokenDescriptor);
-        //var tokenString = tokenHandler.WriteToken(token);
+        [HttpPost]
+        public async Task<IActionResult> VerifyToken(RegisterTokenVerificationModel registerTokenVerificationModel)
+        {
+            try
+            {
+                var authToken = await _authenticationDbContext.AuthAccessTokens
+                    .FirstOrDefaultAsync(t => t.AccountId == registerTokenVerificationModel.AccountId && t.Token == registerTokenVerificationModel.Token && t.Expires > DateTime.UtcNow);
 
-        //var response = new AuthRegisterResponseModel
-        //{
-        //    Token = tokenString
-        //};
-
-        //        return response;
+                if (authToken != null)
+                {
+                    // Token doğrulandı
+                    return Ok(new { Message = "Token doğrulandı." });
+                }
+                else
+                {
+                    // Token geçersiz veya süresi dolmuş
+                    return BadRequest(new { Message = "Token geçersiz veya süresi dolmuş." });
+                }
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { Message = "Token doğrulama sırasında bir hata oluştu." });
+            }
+        }
 
         [HttpPost]
         public async Task<IActionResult> Login(AuthLoginModel model)

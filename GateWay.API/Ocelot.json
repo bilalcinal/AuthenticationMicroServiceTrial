@@ -83,8 +83,20 @@
       ],
       "UpstreamPathTemplate": "/Authentication/UpdatePassword",
       "UpstreamHttpMethod": [ "Post" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Authentication/VerifyToken",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7155
+        }
+      ],
+      "UpstreamPathTemplate": "/Authentication/VerifyToken",
+      "UpstreamHttpMethod": [ "Post" ]
     }
-    
+
 
   ],
     "GlobalConfiguration": {

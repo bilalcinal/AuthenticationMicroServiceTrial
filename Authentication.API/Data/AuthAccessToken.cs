@@ -1,7 +1,11 @@
-﻿namespace Authentication.API.Data
+﻿using Core;
+
+namespace Authentication.API.Data
 {
-    public class AuthAccessToken
+    public class AuthAccessToken : BaseEntity
     {
-        public int AccountID { get; set; }
+        public int AccountId { get; set; }
+        public string Token { get; set; }
+        public DateTime Expires { get; set; }
     }
 }

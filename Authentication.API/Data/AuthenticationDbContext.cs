@@ -15,5 +15,6 @@ namespace Authentication.API.Data
        }
 
        public DbSet<AuthPassword> AuthPasswords { get; set; }
+       public DbSet<AuthAccessToken> AuthAccessTokens { get; set; }
     }
 }
