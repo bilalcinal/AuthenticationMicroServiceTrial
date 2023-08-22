@@ -87,7 +87,7 @@ namespace Authentication.API.Controllers
                 _authenticationDbContext.Add(authToken);
                 await _authenticationDbContext.SaveChangesAsync();
 
-                // Kullanıcıya tokenin gönderilmesi
+               
                 var sendMailEndpoint = "/Notification/SendEmail";
                 var NotificationApiUrl = $"{gatewayBaseUrl}{sendMailEndpoint}";
 
@@ -167,7 +167,7 @@ namespace Authentication.API.Controllers
                     var restResponse = await client.GetAsync(apiUrl);
                     if (restResponse.IsSuccessStatusCode)
                     {
-                        // deaserialize object from response
+                        
                         var responseString = await restResponse.Content.ReadAsStringAsync();
                         var accountData = JsonConvert.DeserializeObject<AccountGetAccountModel>(responseString);
 
@@ -177,7 +177,7 @@ namespace Authentication.API.Controllers
                         bool isPasswordValid = HashingHelper.VerifyPasswordHash(model.Password, accountPasswordData.PasswordHash, accountPasswordData.PasswordSalt);
                         if (!isPasswordValid)
                         {
-                            return NotFound(); // Şifre doğrulanamazsa NotFound döndürülür
+                            return NotFound();
                         }
                         // Kullanıcının hesabı doğrulandıysa JWT Token oluşturulur
                         var tokenHandler = new JwtSecurityTokenHandler();
@@ -275,7 +275,7 @@ namespace Authentication.API.Controllers
                         HashingHelper.CreatePasswordHash(authPasswordUpdateModel.NewPassword, out var newPasswordHash, out var newPasswordSalt);
                         accountPasswordData.PasswordHash = newPasswordHash;
                         accountPasswordData.PasswordSalt = newPasswordSalt;
-                        accountPasswordData.ModifiedDate = DateTime.UtcNow; // ModifiedDate güncelleniyor
+                        accountPasswordData.ModifiedDate = DateTime.UtcNow; 
 
                         _authenticationDbContext.Update(accountPasswordData);
                         await _authenticationDbContext.SaveChangesAsync();
@@ -301,7 +301,7 @@ namespace Authentication.API.Controllers
             }
             catch (Exception ex)
             {
-                // Hata yönetimi burada yapılabilir
+               
                 return StatusCode(500, "Sunucu hatası");
             }
         }
@@ -309,10 +309,3 @@ namespace Authentication.API.Controllers
 
     }
 }
-
-
-
-
-
-        
-    
