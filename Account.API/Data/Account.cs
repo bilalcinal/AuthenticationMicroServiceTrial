@@ -13,6 +13,7 @@ namespace Account.API.Data
         public string Email { get; set; }
         [MaxLength(50)]
         public string Phone { get; set; }
+        public bool IsActivated { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime? ModifiedDate { get; set; }
         

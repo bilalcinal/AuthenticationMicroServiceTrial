@@ -156,6 +156,33 @@ namespace Account.API.Controllers
                 return StatusCode(500, "Sunucu hatası");
             }
         }
+        [HttpPost]
+        public async Task<IActionResult> ActivateAccount(ActivateAccountModel activateAccountModel)
+        {
+            try
+            {
+                // Token doğrulama işlemleri ve hesap aktive işlemleri
+
+                var account = await _accountDbContext.Accounts.Where(a => a.Id == activateAccountModel.AccountId).FirstOrDefaultAsync();
+                if (account != null)
+                {
+                    account.IsActivated = true; // Hesabı aktive et
+                    await _accountDbContext.SaveChangesAsync();
+                }
+                else
+                {
+                    return BadRequest(new { Message = "Hesap bulunamadı." });
+                }
+
+                return Ok(new { Message = "Hesap aktive edildi." });
+            }
+            catch (Exception ex)
+            {
+                // Hata işlemleri
+                return BadRequest(new { Message = "Hesap aktive edilirken bir hata oluştu." });
+            }
+        }
+
 
     }
 }

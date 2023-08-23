@@ -85,7 +85,7 @@
       "UpstreamHttpMethod": [ "Post" ]
     },
     {
-      "DownstreamPathTemplate": "/api/Authentication/VerifyToken",
+      "DownstreamPathTemplate": "/api/Authentication/ValidateTokenCallback",
       "DownstreamScheme": "https",
       "DownstreamHostAndPorts": [
         {
@@ -93,7 +93,19 @@
           "Port": 7155
         }
       ],
-      "UpstreamPathTemplate": "/Authentication/VerifyToken",
+      "UpstreamPathTemplate": "/Authentication/ValidateTokenCallback",
+      "UpstreamHttpMethod": [ "Get" ]
+    },
+    {
+      "DownstreamPathTemplate": "/api/Account/ActivateAccount",
+      "DownstreamScheme": "https",
+      "DownstreamHostAndPorts": [
+        {
+          "Host": "localhost",
+          "Port": 7153
+        }
+      ],
+      "UpstreamPathTemplate": "/Account/ActivateAccount",
       "UpstreamHttpMethod": [ "Post" ]
     }
 

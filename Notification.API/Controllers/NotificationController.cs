@@ -44,5 +44,6 @@ namespace Notification.API.Controllers
                 return BadRequest($"An error occurred: {ex.Message}");
             }
         }
+
     }
 }

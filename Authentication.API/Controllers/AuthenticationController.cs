@@ -95,7 +95,26 @@ namespace Authentication.API.Controllers
                 {
                     ToEmail = AuthRegisterRequestModel.Email,
                     Subject = "Hoş Geldiniz!",
-                    Body = $"Merhaba, hoş geldiniz! Kaydınızı tamamlamak için tokeninizi girmeniz gerekmektedir: {token}"
+                    Body = @"<!DOCTYPE html>
+                                <html lang=""en"">
+                                <head>
+                                    <meta charset=""UTF-8"">
+                                    <meta http-equiv=""X-UA-Compatible"" content=""IE=edge"">
+                                    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+                                    <title>Complete Registration</title>
+                                </head>
+                                <body>
+                                    <h1>Welcome to our platform!</h1>
+                                    <p>Thank you for registering. To complete your registration, please click the following link:</p>
+                                    <p><a href=""https://localhost:7244/Authentication/ValidateTokenCallback?validationToken=" + token + @""">Complete Registration</a></p>
+                                    <p>If the link above doesn't work, you can copy and paste the following URL into your browser's address bar:</p>
+                                    <p>https://localhost:7244/Authentication/ValidateTokenCallback?validationToken=" + token + @"</p>
+                                    <p>We're excited to have you on board. If you have any questions, feel free to contact us.</p>
+                                    <p>Best regards,</p>
+                                    <p>Your Team</p>
+                                </body>
+                                </html>
+                                "
                 };
 
                 using (var NotificationClient = new HttpClient())
@@ -116,7 +135,6 @@ namespace Authentication.API.Controllers
             }
             catch (HttpRequestException ex)
             {
-               
                 return null;
             }
             catch (Exception ex)
@@ -125,18 +143,38 @@ namespace Authentication.API.Controllers
             }
         }
 
-        [HttpPost]
-        public async Task<IActionResult> VerifyToken(RegisterTokenVerificationModel registerTokenVerificationModel)
+        [HttpGet]
+        public async Task<IActionResult> ValidateTokenCallback(string validationToken)
         {
             try
             {
-                var authToken = await _authenticationDbContext.AuthAccessTokens
-                    .FirstOrDefaultAsync(t => t.AccountId == registerTokenVerificationModel.AccountId && t.Token == registerTokenVerificationModel.Token && t.Expires > DateTime.UtcNow);
+                var authToken = await _authenticationDbContext.AuthValidationTokens
+                    .Where(t => t.Token == validationToken && t.Expires > DateTime.UtcNow && !t.Used)
+                    .FirstOrDefaultAsync();
 
-                if (authToken != null)
+                if (authToken != null )
                 {
                     // Token doğrulandı
-                    return Ok(new { Message = "Token doğrulandı." });
+
+                    // Gateway endpoint adresini belirliyoruz
+                    var endpoint = "/Account/ActivateAccount";
+
+                    // Gateway ana adresi ve endpoint adresini belirliyoruz
+                    var gatewayBaseUrl = "https://localhost:7244";
+                    var activateAccountUrl = $"{gatewayBaseUrl}{endpoint}";
+
+                    var activationRequest = new ActivateAccountModel
+                    {
+                        AccountId = authToken.AccountId
+                    };
+
+                    using (var httpClient = new HttpClient())
+                    {
+                        var activationResponse = await httpClient.PostAsJsonAsync(activateAccountUrl, activationRequest);
+                        activationResponse.EnsureSuccessStatusCode();
+
+                        return Ok(new { Message = "Token doğrulandı. Hesap aktive edildi." });
+                    }
                 }
                 else
                 {
