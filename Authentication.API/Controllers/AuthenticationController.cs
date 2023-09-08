@@ -8,10 +8,8 @@ using Authentication.API.Security.Hashing;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
-using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using Notification.API.Model;
-using Microsoft.AspNetCore.Authentication;
 using Authentication.API.Security.AccessToken;
 
 namespace Authentication.API.Controllers
@@ -26,7 +24,14 @@ namespace Authentication.API.Controllers
         {
             _authenticationDbContext = dbContext;
         }
+        #region AuthenticationConstants
+        public static class AuthenticationConstants
+        {
+            public const string GatewayBaseUrl = "https://localhost:7244";
+        }
+        #endregion
 
+        #region Register
         [HttpPost] 
         public async Task<AuthRegisterResponseModel> Register(AuthRegisterRequestModel AuthRegisterRequestModel) 
         {
@@ -40,10 +45,7 @@ namespace Authentication.API.Controllers
 
                 // Gateway endpoint adresini belirliyoruz
                 var endpoint = "/Account/CreateAccount";
-
-                // Gateway ana adresi ve endpoint adresini belirliyoruz
-                var gatewayBaseUrl = "https://localhost:7244";
-                var apiUrl = $"{gatewayBaseUrl}{endpoint}";
+                var apiUrl = $"{AuthenticationConstants.GatewayBaseUrl}{endpoint}";
 
                 var accountData = new AccountGetAccountModel();
                 using (var client = new HttpClient())
@@ -81,7 +83,7 @@ namespace Authentication.API.Controllers
                 {
                     AccountId = accountData.Id,
                     Token = token,
-                    Expires = DateTime.UtcNow.AddMinutes(5) // Örnek olarak 5dk ayarlandı
+                    Expires = DateTime.UtcNow.AddMinutes(5)
                 };
 
                 _authenticationDbContext.Add(authToken);
@@ -89,7 +91,7 @@ namespace Authentication.API.Controllers
 
                
                 var sendMailEndpoint = "/Notification/SendEmail";
-                var NotificationApiUrl = $"{gatewayBaseUrl}{sendMailEndpoint}";
+                var NotificationApiUrl = $"{AuthenticationConstants.GatewayBaseUrl}{sendMailEndpoint}";
 
                 var emailModel = new EmailModel
                 {
@@ -142,26 +144,23 @@ namespace Authentication.API.Controllers
                 return null;
             }
         }
+        #endregion
 
+        #region ValidateTokenCallback
         [HttpGet]
         public async Task<IActionResult> ValidateTokenCallback(string validationToken)
         {
             try
             {
-                var authToken = await _authenticationDbContext.AuthValidationTokens
-                    .Where(t => t.Token == validationToken && t.Expires > DateTime.UtcNow && !t.Used)
-                    .FirstOrDefaultAsync();
+                var authToken = await _authenticationDbContext.AuthAccessTokens
+                                    .Where(t => t.Token == validationToken && t.Expires > DateTime.UtcNow)
+                                    .FirstOrDefaultAsync();
 
                 if (authToken != null )
                 {
-                    // Token doğrulandı
-
                     // Gateway endpoint adresini belirliyoruz
                     var endpoint = "/Account/ActivateAccount";
-
-                    // Gateway ana adresi ve endpoint adresini belirliyoruz
-                    var gatewayBaseUrl = "https://localhost:7244";
-                    var activateAccountUrl = $"{gatewayBaseUrl}{endpoint}";
+                    var activateAccountUrl = $"{AuthenticationConstants.GatewayBaseUrl}{endpoint}";
 
                     var activationRequest = new ActivateAccountModel
                     {
@@ -178,7 +177,6 @@ namespace Authentication.API.Controllers
                 }
                 else
                 {
-                    // Token geçersiz veya süresi dolmuş
                     return BadRequest(new { Message = "Token geçersiz veya süresi dolmuş." });
                 }
             }
@@ -187,7 +185,9 @@ namespace Authentication.API.Controllers
                 return BadRequest(new { Message = "Token doğrulama sırasında bir hata oluştu." });
             }
         }
+        #endregion
 
+        #region Login
         [HttpPost]
         public async Task<IActionResult> Login(AuthLoginModel model)
         {
@@ -195,10 +195,7 @@ namespace Authentication.API.Controllers
             {
                 // Gateway endpoint adresini belirliyoruz
                 var endpoint = "/Account/GetAccount?email=" + model.Email;
-
-                // Gateway ana adresi ve endpoint adresini belirliyoruz
-                var gatewayBaseUrl = "https://localhost:7244";
-                var apiUrl = $"{gatewayBaseUrl}{endpoint}";
+                var apiUrl = $"{AuthenticationConstants.GatewayBaseUrl}{endpoint}";
 
                 using (var client = new HttpClient())
                 {
@@ -226,7 +223,7 @@ namespace Authentication.API.Controllers
                             {
                                 new Claim(ClaimTypes.Email, model.Email)
                             }),
-                            Expires = DateTime.UtcNow.AddMinutes(10), // Token süresi
+                            Expires = DateTime.UtcNow.AddMinutes(10),
                             SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
                         };
                         var token = tokenHandler.CreateToken(tokenDescriptor);
@@ -249,7 +246,9 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Internal error: " + ex.Message);
             }
         }
-        
+        #endregion
+
+        #region UpdatePassword
         [HttpPost]
         public async Task<IActionResult> UpdatePassword(AuthPasswordUpdateModel authPasswordUpdateModel)
         {
@@ -285,10 +284,7 @@ namespace Authentication.API.Controllers
 
                 // Gateway endpoint adresi
                 var endpoint = $"/Account/GetAccount?email={userEmail}";
-
-                // Gateway ana adresi ve endpoint adresi
-                var gatewayBaseUrl = "https://localhost:7244";
-                var apiUrl = $"{gatewayBaseUrl}{endpoint}";
+                var apiUrl = $"{AuthenticationConstants.GatewayBaseUrl}{endpoint}";
 
                 using (var client = new HttpClient())
                 {
@@ -343,7 +339,7 @@ namespace Authentication.API.Controllers
                 return StatusCode(500, "Sunucu hatası");
             }
         }
-
+        #endregion
 
     }
 }

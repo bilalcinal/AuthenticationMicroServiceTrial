@@ -15,8 +15,7 @@ namespace Notification.API.Controllers
         {
             _configuration = configuration;
         }
-
-
+        
         [HttpPost]
         public async Task<IActionResult> SendEmail(EmailModel emailModel)
         {

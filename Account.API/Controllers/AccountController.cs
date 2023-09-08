@@ -3,11 +3,9 @@ using System.Security.Claims;
 using System.Text;
 using Account.API.Data;
 using Account.API.Model;
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
-using Newtonsoft.Json;
 using AccountEntity = Account.API.Data.Account;
 
 
@@ -23,11 +21,13 @@ namespace Account.API.Controllers
         {
             _accountDbContext = dbContext;
         }
-
+        #region AccountCheck
         [HttpGet]
         public async Task<IActionResult> AccountCheck(string Email)
         {
-            var account = await _accountDbContext.Accounts.Where(p => p.Email == Email).AnyAsync();
+            var account = await _accountDbContext.Accounts
+                                .Where(p => p.Email == Email)
+                                .AnyAsync();
             if (!account)
             {
                 return NotFound();
@@ -35,17 +35,22 @@ namespace Account.API.Controllers
 
             return Ok(account);
         }
-
+        #endregion
+        
+        #region GetAccount
         [HttpGet]
         public async Task<AccountGetAccountModel> GetAccount(string Email)
         {
-            var account = await _accountDbContext.Accounts.Where(p => p.Email == Email).Select(p => new AccountGetAccountModel()
+            var account = await _accountDbContext.Accounts
+                                .Where(p => p.Email == Email)
+                                .Select(p => new AccountGetAccountModel()
             {
                 Id = p.Id,
                 FirstName = p.FirstName,
                 LastName = p.LastName,
                 Email = p.Email,
                 Phone = p.Phone
+                
             }).FirstOrDefaultAsync();
 
             if (account == null)
@@ -56,7 +61,9 @@ namespace Account.API.Controllers
             return account;
 
         }
-
+        #endregion
+        
+        #region CreateAccount
         [HttpPost]
         public async Task<AccountGetAccountModel> CreateAccount(AccountModel accountModel)
         {
@@ -82,7 +89,9 @@ namespace Account.API.Controllers
 
             return response;
         }
-
+        #endregion
+        
+        #region UpdateAccount
         [HttpPost]
         public async Task<IActionResult> UpdateAccount(AccountModel accountModel)
         {
@@ -117,8 +126,8 @@ namespace Account.API.Controllers
                 var userEmail = userEmailClaim.Value;
 
                 var account = await _accountDbContext.Accounts
-                    .Where(x => x.Email == userEmail)
-                    .FirstOrDefaultAsync();
+                                    .Where(x => x.Email == userEmail)
+                                    .FirstOrDefaultAsync();
 
                 if (account == null)
                 {
@@ -128,7 +137,7 @@ namespace Account.API.Controllers
                 account.LastName = accountModel.LastName;
                 account.Email = accountModel.Email;
                 account.Phone = accountModel.Phone;
-                account.ModifiedDate = DateTime.UtcNow; // Güncelleme tarihi değiştiriliyor
+                account.ModifiedDate = DateTime.UtcNow; 
 
                 _accountDbContext.Accounts.Update(account);
                 await _accountDbContext.SaveChangesAsync();
@@ -152,21 +161,24 @@ namespace Account.API.Controllers
             }
             catch (Exception ex)
             {
-                // Hata yönetimi burada yapılabilir
                 return StatusCode(500, "Sunucu hatası");
             }
         }
+        #endregion
+        
+        #region ActivateAccount
         [HttpPost]
         public async Task<IActionResult> ActivateAccount(ActivateAccountModel activateAccountModel)
         {
             try
             {
-                // Token doğrulama işlemleri ve hesap aktive işlemleri
 
-                var account = await _accountDbContext.Accounts.Where(a => a.Id == activateAccountModel.AccountId).FirstOrDefaultAsync();
+                var account = await _accountDbContext.Accounts
+                                    .Where(a => a.Id == activateAccountModel.AccountId)
+                                    .FirstOrDefaultAsync();
                 if (account != null)
                 {
-                    account.IsActivated = true; // Hesabı aktive et
+                    account.IsActivated = true; 
                     await _accountDbContext.SaveChangesAsync();
                 }
                 else
@@ -178,11 +190,10 @@ namespace Account.API.Controllers
             }
             catch (Exception ex)
             {
-                // Hata işlemleri
                 return BadRequest(new { Message = "Hesap aktive edilirken bir hata oluştu." });
             }
         }
-
+        #endregion
 
     }
 }

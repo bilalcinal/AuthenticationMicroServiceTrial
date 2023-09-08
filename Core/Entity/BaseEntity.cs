@@ -1,5 +1,4 @@
-﻿using System;
-namespace Core
+﻿namespace Core
 {
 	public class BaseEntity
 	{

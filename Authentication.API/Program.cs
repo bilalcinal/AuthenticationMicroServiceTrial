@@ -1,10 +1,8 @@
 ﻿using Authentication.API.Data;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Http;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using Ocelot.Values;
 using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
